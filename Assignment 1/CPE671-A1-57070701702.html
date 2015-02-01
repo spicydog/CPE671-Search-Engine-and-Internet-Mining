@@ -8,7 +8,7 @@
   <style type="text/css">
   body {
     margin-left: 20px;
-    margin-right: 20px;
+    margin-right: 80px;
   }
   .result {
     width: 100%;
@@ -44,7 +44,8 @@ But she was mistaken; for when night came again she heard the same tapping at th
 And when the princess opened the door the frog came in, and slept upon her pillow as before, till the morning broke. And the third night he did the same. But when the princess awoke on the following morning she was astonished to see, instead of the frog, a handsome prince, gazing on her with the most beautiful eyes she had ever seen, and standing at the head of her bed.
 He told her that he had been enchanted by a spiteful fairy, who had changed him into a frog; and that he had been fated so to abide till some princess should take him out of the spring, and let him eat from her plate, and sleep upon her bed for three nights. 'You,' said the prince, 'have broken his cruel charm, and now I have nothing to wish for but that you should go with me into my father's kingdom, where I will marry you, and love you as long as you live.'
 The young princess, you may be sure, was not long in saying 'Yes' to all this; and as they spoke a gay coach drove up, with eight beautiful horses, decked with plumes of feathers and a golden harness; and behind the coach rode the prince's servant, faithful Heinrich, who had bewailed the misfortunes of his dear master during his enchantment so long and so bitterly, that his heart had well-nigh burst.
-They then took leave of the king, and got into the coach with eight horses, and all set out, full of joy and merriment, for the prince's kingdom, which they reached safely; and there they lived happily a great many years.</textarea class="result">
+They then took leave of the king, and got into the coach with eight horses, and all set out, full of joy and merriment, for the prince's kingdom, which they reached safely; and there they lived happily a great many years.
+</textarea class="result">
 <button id="run1">Run Step 1</button>
 <hr />
 </div>
@@ -68,7 +69,6 @@ They then took leave of the king, and got into the coach with eight horses, and 
   <h3>Step 3: Tokenize the normalized text into tokens and their location. Print out some
   location on the text file to show that it works.</h3>
   <textarea class="result" id="result_step3"></textarea class="result">
-  <button id="run4">Run Step 4</button>
   <hr />
 </div>
 
@@ -76,18 +76,21 @@ They then took leave of the king, and got into the coach with eight horses, and 
   <h3>Step 4: Implement the in-memory array-based version of inverted indices presented in
   the lecture using the binary search of the next method. Show that the next
   method works.</h3>
-  <textarea class="result" id="result_step3"></textarea class="result">
-  <button id="run5">Run Step 5</button>
+  Find next index of <input id="word_of_next" type="text" placeholder="word" />
+  from index  <input id="index_of_next" type="text" placeholder="index" />
+  <button id="run4">Search!</button><br /><br />
+  <pre id="result_step4"></pre>
   <hr />
 </div>
 
 <div id="step5">
   <h3>Step 5: Use your implementation of inverted indices, implement the basic phrase
   search algorithm presented in the lecture. Show that it works by printing out some results.</h3>
-  <pre id="result_step3"></pre>
+  Search phrase <input id="phrase" type="text" placeholder="phrase" />
+  <button id="run5">Search!</button><br /><br />
+  <pre id="result_step5"></pre>
   <hr />
 </div>
-
 
 
 
@@ -98,12 +101,13 @@ They then took leave of the king, and got into the coach with eight horses, and 
   <script>
 
   var data;
+  var indexedData;
   var dictionary;
 
   // Step 1: convert to lowercase   
   $('#run1').click(function() {
-    data = $("#result_step0").text();
-    data = data.toLowerCase();
+    data = $("#result_step0").val();
+    data = convertLowerCase(data);
     $("#result_step1").html(data);
   });
 
@@ -117,9 +121,61 @@ They then took leave of the king, and got into the coach with eight horses, and 
 
   // Step 3: Tokenization
   $('#run3').click(function() {
-    dictionary = tokenize(data);
+    var tokens = tokenize(data);
+    dictionary = tokens[1];
+    indexedData = tokens[0];
     var nRow = $("#n_dictionary_row").val();
     $("#result_step3").html(printDictionary(dictionary,nRow));
+  });
+
+
+  // Step 4: Next function
+  $('#run4').click(function() {
+    var fromIndex = parseInt($('#index_of_next').val());
+    fromIndex = isNaN(fromIndex) ? 0 : fromIndex;
+    var word = $('#word_of_next').val();
+
+    if(word.length>0) {
+      resultIndex = next(dictionary[word],fromIndex);
+      if(resultIndex==-1) {
+        resultIndex = 'Word not found';
+      } else if(resultIndex==-2) {
+        resultIndex = 'Exceed last index';
+      } 
+      $("#result_step4").html( resultIndex );
+    }
+  });
+
+
+  // Step 5: Search phrase
+  $('#run5').click(function() {
+    var phrase = $('#phrase').val();
+    var addition = 3;
+    if(phrase.length>0) {
+      var resultIndeces = searchParse(phrase)
+      var resultString = "";
+      for(var i in resultIndeces) {
+        var resultIndex = resultIndeces[i];
+        for(var j = resultIndex[0]-addition ; j<resultIndex[resultIndex.length-1]+1+addition ; j++) {
+          if(j<0 || j>=indexedData.length) {
+            continue;
+          }
+
+          if(j == resultIndex[0]) {
+            resultString += '<strong>';
+          }
+          resultString += indexedData[j];
+
+          if(j == resultIndex[resultIndex.length-1]) {
+            resultString += '</strong>';
+          }
+          resultString += " ";
+
+        }
+        resultString += "\n";
+      }
+      $("#result_step5").html( resultString );
+    }
   });
 
 
@@ -127,8 +183,81 @@ They then took leave of the king, and got into the coach with eight horses, and 
   $('#run2').click();
   $('#run3').click();
 
+  function convertLowerCase(string) {
+    return string.toLowerCase();
+  }
+  
+  function searchParse(parse) {
+    parse = convertLowerCase(parse);
+    parse = filterSymbols(parse);
+    words = parse.split(" ");
+
+    var firstWordIndex = 0;
+    var result = new Array();
+    while(true) {
+
+      firstWordIndex = next(dictionary[ words[0] ], firstWordIndex);
+      if(firstWordIndex<0) {
+        break;
+      }
+
+      var foundFlag = true;
+      for(var i=1;i<words.length;i++) {
+        if( next(dictionary[ words[i] ], firstWordIndex+i) != firstWordIndex+i ) {
+          foundFlag = false;
+          break;
+        }
+      }
+
+      if(foundFlag) {
+        var temp = new Array();
+        for(var i=0;i<words.length;i++) {
+          temp.push(firstWordIndex+i);
+        }
+        result.push(temp);
+      }
+
+      firstWordIndex++;
+    }
+    return result;
+  }
 
 
+  function next(array,fromIndex) {
+    // No data
+    if(array==undefined || array.length==0) {
+      return -1;
+    }
+
+    var count = array.length;
+    // Only one element
+    if(count==1) {
+      return array[0] >= fromIndex ? array[0] : -2;
+    }
+
+    // Exceed last index
+    if(array[count-1] < fromIndex) {
+      return -2;
+    }
+
+    var begin = 0;
+    var end = count-1;
+    var pivot = Math.floor((end+begin)/2);
+
+    while(begin<end) {
+      if(fromIndex < array[pivot]) {
+        end = pivot;
+      } else if(fromIndex > array[pivot]) {
+        begin = pivot+1;
+      } else {
+        begin = pivot;
+        end = pivot;
+      }
+      pivot = Math.floor((end+begin)/2);
+    }
+
+    return array[pivot];
+  }
 
 
   function filterSymbols(data) {
@@ -156,6 +285,7 @@ They then took leave of the king, and got into the coach with eight horses, and 
 
   function tokenize(data) {
     var dictionary = new Array();
+    var indexedData = new Array();
     var lines = data.split("\n");
     var k = 0;
     var lineNo = 0;
@@ -170,12 +300,13 @@ They then took leave of the king, and got into the coach with eight horses, and 
           index = dictionary[word].length;
         }
         dictionary[word][index] = k;
+        indexedData[k] = word;
         k++;
       }
       lineNo++;
     }
 
-    return dictionary;
+    return [indexedData,dictionary];
   }
 
   function printDictionary(dictionary,n) {
