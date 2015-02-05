@@ -187,10 +187,11 @@ They then took leave of the king, and got into the coach with eight horses, and 
     return string.toLowerCase();
   }
   
-  function searchParse(parse) {
-    parse = convertLowerCase(parse);
-    parse = filterSymbols(parse);
-    words = parse.split(" ");
+  function searchParse(phrase) {
+  	phrase = phrase.trim();
+    phrase = convertLowerCase(phrase);
+    phrase = filterSymbols(phrase);
+    words = phrase.split(" ");
 
     var firstWordIndex = 0;
     var result = new Array();
