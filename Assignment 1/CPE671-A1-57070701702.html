@@ -7,8 +7,8 @@
   <script type="text/javascript" src="jquery.min.js"></script>
   <style type="text/css">
   body {
-    margin-left: 20px;
-    margin-right: 80px;
+    margin-left: 120px;
+    margin-right: 120px;
   }
   .result {
     width: 100%;
@@ -45,21 +45,21 @@ And when the princess opened the door the frog came in, and slept upon her pillo
 He told her that he had been enchanted by a spiteful fairy, who had changed him into a frog; and that he had been fated so to abide till some princess should take him out of the spring, and let him eat from her plate, and sleep upon her bed for three nights. 'You,' said the prince, 'have broken his cruel charm, and now I have nothing to wish for but that you should go with me into my father's kingdom, where I will marry you, and love you as long as you live.'
 The young princess, you may be sure, was not long in saying 'Yes' to all this; and as they spoke a gay coach drove up, with eight beautiful horses, decked with plumes of feathers and a golden harness; and behind the coach rode the prince's servant, faithful Heinrich, who had bewailed the misfortunes of his dear master during his enchantment so long and so bitterly, that his heart had well-nigh burst.
 They then took leave of the king, and got into the coach with eight horses, and all set out, full of joy and merriment, for the prince's kingdom, which they reached safely; and there they lived happily a great many years.
-</textarea class="result">
+</textarea>
 <button id="run1">Run Step 1</button>
 <hr />
 </div>
 
 <div id="step1">
   <h3>Step 1: Normalize the text by (1) convert all letters to lowercase letters</h3>
-  <textarea class="result" id="result_step1"></textarea class="result">
+  <textarea class="result" id="result_step1"></textarea>
   <button id="run2">Run Step 2</button>
   <hr />
 </div>
 
 <div id="step2">
   <h3>Step 2: Remove other symbols, for examples “.”, “:”, “!”, and others</h3>
-  <textarea class="result" id="result_step2"></textarea class="result">
+  <textarea class="result" id="result_step2"></textarea>
   <input type="text" value="30" id="n_dictionary_row" />
   <button id="run3">Run Step 3</button>
   <hr />
@@ -68,7 +68,7 @@ They then took leave of the king, and got into the coach with eight horses, and 
 <div id="step3">
   <h3>Step 3: Tokenize the normalized text into tokens and their location. Print out some
   location on the text file to show that it works.</h3>
-  <textarea class="result" id="result_step3"></textarea class="result">
+  <textarea class="result" id="result_step3"></textarea>
   <hr />
 </div>
 
@@ -104,7 +104,7 @@ They then took leave of the king, and got into the coach with eight horses, and 
   var indexedData;
   var dictionary;
 
-  // Step 1: convert to lowercase   
+  // Step 1: convert to lowercase
   $('#run1').click(function() {
     data = $("#result_step0").val();
     data = convertLowerCase(data);
@@ -141,7 +141,7 @@ They then took leave of the king, and got into the coach with eight horses, and 
         resultIndex = 'Word not found';
       } else if(resultIndex==-2) {
         resultIndex = 'Exceed last index';
-      } 
+      }
       $("#result_step4").html( resultIndex );
     }
   });
@@ -186,14 +186,14 @@ They then took leave of the king, and got into the coach with eight horses, and 
   function convertLowerCase(string) {
     return string.toLowerCase();
   }
-  
+
   function searchParse(phrase) {
   	phrase = phrase.trim();
     phrase = convertLowerCase(phrase);
     phrase = filterSymbols(phrase);
     words = phrase.split(" ");
 
-    var firstWordIndex = 0;
+    var firstWordIndex = -1;
     var result = new Array();
     while(true) {
 
@@ -204,7 +204,7 @@ They then took leave of the king, and got into the coach with eight horses, and 
 
       var foundFlag = true;
       for(var i=1;i<words.length;i++) {
-        if( next(dictionary[ words[i] ], firstWordIndex+i) != firstWordIndex+i ) {
+        if( next(dictionary[ words[i] ], firstWordIndex+i-1) != firstWordIndex+i ) {
           foundFlag = false;
           break;
         }
@@ -225,6 +225,8 @@ They then took leave of the king, and got into the coach with eight horses, and 
 
 
   function next(array,fromIndex) {
+
+    fromIndex += 1;
     // No data
     if(array==undefined || array.length==0) {
       return -1;
