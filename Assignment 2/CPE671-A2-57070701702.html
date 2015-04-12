@@ -159,6 +159,18 @@ Once the data is transmitted, the tesseract dissolves and Cooper finds himself t
   <script>
 
 
+  $.ajaxPrefilter( function (options) {
+    if (options.crossDomain && jQuery.support.cors) {
+      var http = (window.location.protocol === 'http:' ? 'http:' : 'https:');
+      options.url = http + '//cors-anywhere.herokuapp.com/' + options.url;
+      //options.url = "http://cors.corsproxy.io/url=" + options.url;
+    }
+  });
+
+  $.get('https://raw.githubusercontent.com/spicydog/CPE671-Search-Engine-and-Internet-Mining/master/Assignment%202/data/BeautifulMind.txt',function (response) {
+          alert(response);
+  });
+
 
   var indexedData;
   var dictionary;
