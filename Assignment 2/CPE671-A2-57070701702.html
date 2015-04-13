@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -18,10 +17,40 @@
     width: 100%;
     height: 300px;
   }
+
+  .overlay {
+    background-color: #ffffff;
+    position:absolute;
+    padding: 8px;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    z-index:1000;
+  }
   </style>
+
+
+  <script type="text/javascript">
+
+    var docSources =  [{name:'BeautifulMind'        ,relevant:false},
+                       {name:'Gladiator'            ,relevant:false},
+                       {name:'Gravity'              ,relevant:true},
+                       {name:'Hobbit1'              ,relevant:false},
+                       {name:'Interstellar'         ,relevant:true},
+                       {name:'Prometheus'           ,relevant:false},
+                       {name:'ResidentEvil'         ,relevant:false},
+                       {name:'StarWars'             ,relevant:false},
+                       {name:'TheFaultInOurStars'   ,relevant:false},
+                       {name:'Titanic'              ,relevant:false}];
+
+    var docPath = 'https://raw.githubusercontent.com/spicydog/CPE671-Search-Engine-and-Internet-Mining/master/Assignment%202/data/{NAME}.txt';
+
+  </script>
 </head>
 <body>
 
+<div id="loading" class="overlay">Loading documents from the internet..</div>
 
 
 <div id="Documents">
@@ -88,25 +117,11 @@
 
 
 
-<script>
-
-  var docSources =  [{name:'BeautifulMind',relevant:false},
-                     {name:'Gladiator',relevant:false},
-                     {name:'Gravity',relevant:true},
-                     {name:'Hobbit1',relevant:false},
-                     {name:'Interstellar',relevant:true},
-                     {name:'Prometheus',relevant:false},
-                     {name:'ResidentEvil',relevant:false},
-                     {name:'StarWars',relevant:false},
-                     {name:'TheFaultInOurStars',relevant:false},
-                     {name:'Titanic',relevant:false}];
-
-
-  var docPath = 'https://raw.githubusercontent.com/spicydog/CPE671-Search-Engine-and-Internet-Mining/master/Assignment%202/data/{NAME}.txt';
+<script type="text/javascript">
 
   var docCount = 0;
-  requestSource();
-  function requestSource() {
+  requestRawDocumentFromSources();
+  function requestRawDocumentFromSources() {
     docCount = 0;
     $('#source').html('');
 
@@ -117,16 +132,25 @@
       }
     });
 
+
     jQuery.ajaxSetup({async:false});
     for(var i in docSources) {
       var docSource = docSources[i];
       var fullDocPath = docPath.replace('{NAME}',docSource.name);
 
-      $.get(fullDocPath,function (response) {
-        printSource(docSource.name,response,docSource.relevant);
-      });
+      if(localStorage.getItem(fullDocPath) && typeof(Storage) !== "undefined") { // Cache hit
+        printSource(docSource.name,localStorage.getItem(fullDocPath),docSource.relevant);
+      } else {
+        $.get(fullDocPath,function (response) { // Request from internet
+          if(typeof(Storage) !== "undefined") {
+            localStorage.setItem(fullDocPath, response);
+          }
+          printSource(docSource.name,response,docSource.relevant);
+        });
+      }
     }
     jQuery.ajaxSetup({async:true});
+    $('#loading').hide();
   }
 
   function printSource(name, text, isRelevance) {
