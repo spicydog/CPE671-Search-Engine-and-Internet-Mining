@@ -177,8 +177,11 @@
 
   // Index documents
   $('#run_index').click(function() {
-    // Read documents
-    //
+    // Do index
+
+    globalDictionary = new Array();
+    currentWordIndex = 0;
+
     $("textarea[id^='document_']").each(function(index) {
 
       var data = $(this).val();
@@ -186,12 +189,46 @@
       data = filterSymbols(data);
       documents[index] = data;
 
+      var tokens = tokenize(data,globalDictionary);
+
+
     });
 
-    console.log(documents);
+    console.log(globalDictionary);
+
   });
 
+  var globalDictionary = new Array();
+  var currentWordIndex = 0;
 
+  function tokenize(data, dictionary) {
+    var lines = data.split("\n");
+    var k = 0;
+    var lineNo = 0;
+
+    var words = data.split(" ");
+
+    var nextIndex = currentWordIndex;
+
+    for(var i in words) {
+      var word = words[i];
+      var index = 0;
+      if(dictionary[word] === undefined) {
+        dictionary[word] = new Array();
+      } else {
+        index = dictionary[word].length;
+      }
+      dictionary[word][index] = nextIndex;
+      nextIndex++;
+    }
+
+
+    var fromIndex = currentWordIndex;
+    var toIndex = nextIndex;
+    currentWordIndex = nextIndex;
+
+    return [fromIndex,toIndex];
+  }
 
   // Step 3: Tokenization
   $('#run3').click(function() {
@@ -338,31 +375,6 @@
     return data;
   }
 
-  function tokenize(data) {
-    var dictionary = new Array();
-    var indexedData = new Array();
-    var lines = data.split("\n");
-    var k = 0;
-    var lineNo = 0;
-    for(i in lines) {
-      var line = lines[i].split(" ");
-      for(j in line) {
-        var word = line[j];
-        var index = 0;
-        if(dictionary[word] === undefined) {
-          dictionary[word] = new Array();
-        } else {
-          index = dictionary[word].length;
-        }
-        dictionary[word][index] = k;
-        indexedData[k] = word;
-        k++;
-      }
-      lineNo++;
-    }
-
-    return [indexedData,dictionary];
-  }
 
   function printDictionary(dictionary,n) {
     var result = "";
