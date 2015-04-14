@@ -199,8 +199,8 @@
 
     });
 
-    console.log(globalDocuments);
-
+    // console.log(globalDocuments);
+    console.log(getDocID(5000));
 
   });
 
@@ -219,14 +219,16 @@
 
     for(var i in words) {
       var word = words[i];
-      var index = 0;
-      if(dictionary[word] === undefined) {
-        dictionary[word] = new Array();
-      } else {
-        index = dictionary[word].length;
+      if(word.length>0) {
+        var index = 0;
+        if(dictionary[word] === undefined) {
+          dictionary[word] = new Array();
+        } else {
+          index = dictionary[word].length;
+        }
+        dictionary[word][index] = nextIndex;
+        nextIndex++;
       }
-      dictionary[word][index] = nextIndex;
-      nextIndex++;
     }
 
 
@@ -236,6 +238,18 @@
 
     return [fromIndex,toIndex];
   }
+
+
+  function getDocID(position) {
+    for(var i in globalDocuments) {
+      doc = globalDocuments[i];
+      if(doc.begin<=position && position<=doc.end) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
 
   // Step 3: Tokenization
   $('#run3').click(function() {
