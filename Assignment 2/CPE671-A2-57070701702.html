@@ -180,6 +180,7 @@
     // Do index
 
     globalDictionary = new Array();
+    globalDocuments = new Array();
     currentWordIndex = 0;
 
     $("textarea[id^='document_']").each(function(index) {
@@ -189,16 +190,22 @@
       data = filterSymbols(data);
       documents[index] = data;
 
-      var tokens = tokenize(data,globalDictionary);
+      [fromIndex,toIndex] = tokenize(data,globalDictionary);
 
+      var doc = docSources[index];
+      doc.begin = fromIndex;
+      doc.end = toIndex;
+      globalDocuments.push(doc);
 
     });
 
-    console.log(globalDictionary);
+    console.log(globalDocuments);
+
 
   });
 
   var globalDictionary = new Array();
+  var globalDocuments = new Array();
   var currentWordIndex = 0;
 
   function tokenize(data, dictionary) {
@@ -224,7 +231,7 @@
 
 
     var fromIndex = currentWordIndex;
-    var toIndex = nextIndex;
+    var toIndex = nextIndex - 1;
     currentWordIndex = nextIndex;
 
     return [fromIndex,toIndex];
