@@ -53,61 +53,17 @@
 <div id="loading" class="overlay">Loading documents from the internet..</div>
 
 
-<div id="Documents">
+<div id="documents">
 <h3>Documents</h3>
 <div id="source"></div>
 <button id="run_index">DO INDEX!</button>
 <hr />
 </div>
 
-
-<div id="step0">
-<h3>Step 0: Raw Data</h3>
-<textarea class="result" id="result_step0">THE FROG-PRINCE
-</textarea>
-<button id="run1">Run Step 1</button>
-<hr />
-</div>
-
-<div id="step1">
-  <h3>Step 1: Normalize the text by (1) convert all letters to lowercase letters</h3>
-  <textarea class="result" id="result_step1"></textarea>
-  <button id="run2">Run Step 2</button>
-  <hr />
-</div>
-
-<div id="step2">
-  <h3>Step 2: Remove other symbols, for examples “.”, “:”, “!”, and others</h3>
-  <textarea class="result" id="result_step2"></textarea>
-  <input type="text" value="30" id="n_dictionary_row" />
-  <button id="run3">Run Step 3</button>
-  <hr />
-</div>
-
-<div id="step3">
-  <h3>Step 3: Tokenize the normalized text into tokens and their location. Print out some
-  location on the text file to show that it works.</h3>
-  <textarea class="result" id="result_step3"></textarea>
-  <hr />
-</div>
-
-<div id="step4">
-  <h3>Step 4: Implement the in-memory array-based version of inverted indices presented in
-  the lecture using the binary search of the next method. Show that the next
-  method works.</h3>
-  Find next index of <input id="word_of_next" type="text" placeholder="word" />
-  from index  <input id="index_of_next" type="text" placeholder="index" />
-  <button id="run4">Search!</button><br /><br />
-  <pre id="result_step4"></pre>
-  <hr />
-</div>
-
 <div id="step5">
-  <h3>Step 5: Use your implementation of inverted indices, implement the basic phrase
-  search algorithm presented in the lecture. Show that it works by printing out some results.</h3>
-  Search phrase <input id="phrase" type="text" placeholder="phrase" />
+  <h3>Compute the Robertson/Sparck Jones weight wt of all the weight t in all the 10 documents using Eq. 6 in the lecture.<a href=""></a><input id="phrase" type="text" placeholder="phrase" />
   <button id="run5">Search!</button><br /><br />
-  <pre id="result_step5"></pre>
+  <pre id="result"></pre>
   <hr />
 </div>
 
@@ -190,17 +146,19 @@
       data = filterSymbols(data);
       documents[index] = data;
 
-      [fromIndex,toIndex] = tokenize(data,globalDictionary);
+      var result = tokenize(data,globalDictionary);
 
       var doc = docSources[index];
-      doc.begin = fromIndex;
-      doc.end = toIndex;
+      doc.begin = result.from;
+      doc.end = result.to;
       globalDocuments.push(doc);
 
     });
 
     // console.log(globalDocuments);
-    console.log(getDocID(5000));
+    getWeight(globalDictionary,globalDocuments);
+
+    // $('#result').html(printDictionary(globalDictionary,100000));
 
   });
 
@@ -236,7 +194,7 @@
     var toIndex = nextIndex - 1;
     currentWordIndex = nextIndex;
 
-    return [fromIndex,toIndex];
+    return {from:fromIndex,to:toIndex};
   }
 
 
@@ -250,65 +208,23 @@
     return -1;
   }
 
+  function getWeight(dictionary,documents) {
+    var Nr = 0;
+    var N = 0;
+    var Ntr = 0;
+    var Nt = 0;
 
-  // Step 3: Tokenization
-  $('#run3').click(function() {
-    var tokens = tokenize(data);
-    dictionary = tokens[1];
-    indexedData = tokens[0];
-    var nRow = $("#n_dictionary_row").val();
-    $("#result_step3").html(printDictionary(dictionary,nRow));
-  });
-
-
-  // Step 4: Next function
-  $('#run4').click(function() {
-    var fromIndex = parseInt($('#index_of_next').val());
-    fromIndex = isNaN(fromIndex) ? 0 : fromIndex;
-    var word = $('#word_of_next').val();
-
-    if(word.length>0) {
-      resultIndex = next(dictionary[word],fromIndex);
-      if(resultIndex==-1) {
-        resultIndex = 'Word not found';
-      } else if(resultIndex==-2) {
-        resultIndex = 'Exceed last index';
+    for(var index in documents) {
+      var doc = documents;
+      if(doc.relevant) {
+        Nr++;
       }
-      $("#result_step4").html( resultIndex );
     }
-  });
 
-
-  // Step 5: Search phrase
-  $('#run5').click(function() {
-    var phrase = $('#phrase').val();
-    var addition = 3;
-    if(phrase.length>0) {
-      var resultIndeces = searchParse(phrase)
-      var resultString = "";
-      for(var i in resultIndeces) {
-        var resultIndex = resultIndeces[i];
-        for(var j = resultIndex[0]-addition ; j<resultIndex[resultIndex.length-1]+1+addition ; j++) {
-          if(j<0 || j>=indexedData.length) {
-            continue;
-          }
-
-          if(j == resultIndex[0]) {
-            resultString += '<strong>';
-          }
-          resultString += indexedData[j];
-
-          if(j == resultIndex[resultIndex.length-1]) {
-            resultString += '</strong>';
-          }
-          resultString += " ";
-
-        }
-        resultString += "\n";
-      }
-      $("#result_step5").html( resultString );
+    for(var term in dictionary) {
+      console.log(term);
     }
-  });
+  }
 
 
   function convertLowerCase(string) {
