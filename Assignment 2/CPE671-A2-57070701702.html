@@ -163,7 +163,12 @@
     });
 
     // console.log(globalDocuments);
-    getWeight(globalDictionary,globalDocuments);
+    var weights = getWeight(globalDictionary,globalDocuments);
+    var output = '';
+    for(var term in weights) {
+      output += term + "\t".repeat( 3 - Math.floor(term.length/8) ) + weights[term] + "\n";
+    }
+    $('#result').html(output);
 
     // $('#result').html(printDictionary(globalDictionary,100000));
 
@@ -216,10 +221,10 @@
   }
 
   function getWeight(dictionary,documents) {
+    weights = new Array();
+
     var Nr = 0;
     var N = 0;
-    var Ntr = 0;
-    var Nt = 0;
 
     for(var index in documents) {
       var doc = documents[index];
@@ -230,14 +235,41 @@
     }
 
     for(var term in dictionary) {
+
+      var isInDocs = new Array();
+      for(var i in documents) {
+        isInDocs[i] = false;
+      }
+
+
       var indices = dictionary[term];
       for(var i in indices) {
         var index = indices[i];
+        var docID = getDocID(index);
+        isInDocs[docID] = true;
         // console.log(index);
         // console.log(term + " " + index + " " + getDocID(index));
       }
+
+      var Ntr = 0;
+      var Nt = 0;
+      for(var docID in documents) {
+        if(isInDocs[docID]) {
+          Nt++;
+          var doc = documents[docID];
+          if(doc.relevant) {
+            Ntr++;
+          }
+        }
+      }
+
+      var up = (Ntr+0.5)*(N-Nt-Nr+Ntr+0.5);
+      var down = (Nr-Ntr+0.5)*(Nt-Ntr+0.5);
+
+      weights[term] = Math.log(up/down);
     }
-    console.log(documents);
+
+    return weights;
   }
 
 
