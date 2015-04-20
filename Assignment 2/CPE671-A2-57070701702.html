@@ -56,7 +56,7 @@
 <div id="documents">
 <h3>Documents</h3>
 <div id="source"></div>
-<button id="run_index">DO INDEX!</button>
+<button id="run_index">Compute Weight</button>
 <hr />
 </div>
 
@@ -146,11 +146,18 @@
       data = filterSymbols(data);
       documents[index] = data;
 
+      // Tokenization
       var result = tokenize(data,globalDictionary);
 
+      // Get doc boundary
       var doc = docSources[index];
       doc.begin = result.from;
       doc.end = result.to;
+
+      // Check relevant
+      var relevantDOMID = $(this).attr('id').replace("document_", "relevance_");
+      doc.relevant = $('#'+relevantDOMID).prop("checked");
+
       globalDocuments.push(doc);
 
     });
@@ -215,15 +222,22 @@
     var Nt = 0;
 
     for(var index in documents) {
-      var doc = documents;
+      var doc = documents[index];
       if(doc.relevant) {
         Nr++;
       }
+      N++;
     }
 
     for(var term in dictionary) {
-      console.log(term);
+      var indices = dictionary[term];
+      for(var i in indices) {
+        var index = indices[i];
+        // console.log(index);
+        // console.log(term + " " + index + " " + getDocID(index));
+      }
     }
+    console.log(documents);
   }
 
 
