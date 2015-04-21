@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Assignment 1</title>
+  <meta charset="UTF-8">
+  <script type="text/javascript" src="jquery.min.js"></script>
+  <style type="text/css">
+  body {
+    margin-left: 120px;
+    margin-right: 120px;
+  }
+  .document {
+    width: 20%;
+    float:left;
+  }
+  .result {
+    width: 100%;
+    height: 300px;
+  }
+
+  .overlay {
+    background-color: #ffffff;
+    position:absolute;
+    padding: 8px;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    z-index:1000;
+  }
+  </style>
+
+
+  <script type="text/javascript">
+
+    var docSources =  [{name:'BeautifulMind'        ,relevant:false},
+                       {name:'Gladiator'            ,relevant:false},
+                       {name:'Gravity'              ,relevant:true},
+                       {name:'Hobbit1'              ,relevant:false},
+                       {name:'Interstellar'         ,relevant:true},
+                       {name:'Prometheus'           ,relevant:false},
+                       {name:'ResidentEvil'         ,relevant:false},
+                       {name:'StarWars'             ,relevant:false},
+                       {name:'TheFaultInOurStars'   ,relevant:false},
+                       {name:'Titanic'              ,relevant:false}];
+
+    var docPath = 'https://raw.githubusercontent.com/spicydog/CPE671-Search-Engine-and-Internet-Mining/master/Assignment%202/data/{NAME}.txt';
+
+  </script>
+</head>
+<body>
+
+<div id="loading" class="overlay">Loading documents from the internet..</div>
+
+
+<div id="documents">
+  <h3>Documents</h3>
+  <div id="source"></div>
+  <hr />
+</div>
+
+
+<div>
+  <h3>Compute the Robertson/Sparck Jones weight wt of all the weight t in all the 10 documents using Eq. 6 in the lecture.</h3>
+  <button id="compute_weight">Compute Weight</button>
+  <pre id="weight_result" style="height:200px; overflow:auto;"></pre>
+  <hr />
+</div>
+
+
+
+<div>
+  <h3>Implement a query search function that prints the ranked documents based on their combined weights.</h3>
+  <input id="txt_search" type="text" placeholder="keyword" /></h3>
+  <button id="btn_search">Search</button>
+  <pre id="search_result"></pre>
+  <hr />
+</div>
+
+
+
+
+<script type="text/javascript">
+
+  var globalDictionary = new Array();
+  var globalDocuments = new Array();
+  var globalWeight = new Array();
+  var currentWordIndex = 0;
+
+  var docCount = 0;
+
+  requestRawDocumentFromSources();
+
+  // Compute Weight is clicked
+  $('#compute_weight').click(function() {
+
+    globalDictionary = new Array();
+    globalDocuments = new Array();
+    currentWordIndex = 0;
+
+    $("textarea[id^='document_']").each(function(index) {
+
+      var data = $(this).val();
+      data = convertLowerCase(data);
+      data = filterSymbols(data);
+      documents[index] = data;
+
+      // Tokenization
+      var result = tokenize(data,globalDictionary);
+
+      // Get doc boundary
+      var doc = docSources[index];
+      doc.begin = result.from;
+      doc.end = result.to;
+
+      // Check relevant
+      var relevantDOMID = $(this).attr('id').replace("document_", "relevance_");
+      doc.relevant = $('#'+relevantDOMID).prop("checked");
+
+      globalDocuments.push(doc);
+
+    });
+
+    // Compute term weights
+    globalWeight = getWeight(globalDictionary,globalDocuments);
+    var output = '';
+    for(var term in globalWeight) {
+      output += term + "\t".repeat( 3 - Math.floor(term.length/8) ) + globalWeight[term] + "\n";
+    }
+    $('#weight_result').html(output);
+
+  });
+
+  // Search button is clicked
+  $('#btn_search').click(function() {
+
+    // Get array of keywords
+    var searchKeyword = $('#txt_search').val();
+    searchKeyword = convertLowerCase(searchKeyword);
+    searchKeyword = filterSymbols(searchKeyword);
+    var keywords = searchKeyword.split(' ');
+
+    // Compute score of documents for the terms
+    var scores = getDocumentScores(globalDocuments,globalDictionary,globalWeight,keywords);
+
+    // Sort document scores order by DESC
+    var sortedIndices = getSortedIndices(scores).reverse();
+
+    // Generate output
+    var output = '';
+    for(var i in sortedIndices) {
+      var docID = sortedIndices[i];
+      var docName = globalDocuments[docID].name;
+      output += docName + "\t".repeat( 3 - Math.floor(docName.length/8) ) + scores[docID] + "\n" ;
+    }
+    $('#search_result').html(output);
+
+  });
+
+
+
+  function convertLowerCase(string) {
+    return string.toLowerCase();
+  }
+
+  function filterSymbols(data) {
+    data = data.replace(/[^a-z 0-9]/gi,'');
+    while(data.indexOf('  ')>0) {
+      data = data.replace(/  /g, ' ');
+    }
+    return data;
+  }
+
+  function tokenize(data, dictionary) {
+    var lines = data.split("\n");
+    var k = 0;
+    var lineNo = 0;
+
+    var words = data.split(" ");
+
+    var nextIndex = currentWordIndex;
+
+    for(var i in words) {
+      var word = words[i];
+      if(word.length>0) {
+        var index = 0;
+        if(dictionary[word] === undefined) {
+          dictionary[word] = new Array();
+        } else {
+          index = dictionary[word].length;
+        }
+        dictionary[word][index] = nextIndex;
+        nextIndex++;
+      }
+    }
+
+
+    var fromIndex = currentWordIndex;
+    var toIndex = nextIndex - 1;
+    currentWordIndex = nextIndex;
+
+    return {from:fromIndex,to:toIndex};
+  }
+
+
+  function getDocID(position) {
+    for(var i in globalDocuments) {
+      doc = globalDocuments[i];
+      if(doc.begin<=position && position<=doc.end) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  function getWeight(dictionary,documents) {
+    weights = new Array();
+
+    var Nr = 0;
+    var N = 0;
+
+    for(var index in documents) {
+      var doc = documents[index];
+      if(doc.relevant) {
+        Nr++;
+      }
+      N++;
+    }
+
+    for(var term in dictionary) {
+
+      var isInDocs = new Array();
+      for(var i in documents) {
+        isInDocs[i] = false;
+      }
+
+
+      var indices = dictionary[term];
+      for(var i in indices) {
+        var index = indices[i];
+        var docID = getDocID(index);
+        isInDocs[docID] = true;
+      }
+
+      var Ntr = 0;
+      var Nt = 0;
+      for(var docID in documents) {
+        if(isInDocs[docID]) {
+          Nt++;
+          var doc = documents[docID];
+          if(doc.relevant) {
+            Ntr++;
+          }
+        }
+      }
+
+      var up = (Ntr+0.5)*(N-Nt-Nr+Ntr+0.5);
+      var down = (Nr-Ntr+0.5)*(Nt-Ntr+0.5);
+
+      weights[term] = Math.log(up/down);
+    }
+
+    return weights;
+  }
+
+  function getDocumentScores(documents,dictionary,weight,keywords) {
+    var scores = new Array();
+
+    for(var docID in documents) {
+      scores[docID] = 0;
+    }
+
+    for(var i in keywords) {
+      var keyword = keywords[i];
+      var positions = dictionary[keyword];
+
+      var appears = new Array();
+      for(var docID in documents) {
+        appears[docID] = 0;
+      }
+
+      for(var j in positions) {
+        var position = positions[j];
+        var docID = getDocID(position);
+        appears[docID] = 1;
+      }
+      for(var docID in documents) {
+        scores[docID] += appears[docID]*weight[keyword];
+      }
+
+    }
+
+    return scores;
+  }
+
+  function getSortedIndices(array) {
+    var indices = new Array();
+    for(var key in array) {
+      indices.push(key);
+    }
+
+    for(var i=0; i<array.length; i++) {
+      for(var j=i+1; j<array.length; j++) {
+        if( array[indices[i]] > array[indices[j]] ) {
+          var swap = indices[i];
+          indices[i] = indices[j];
+          indices[j] = swap;
+        }
+      }
+    }
+    return indices;
+  }
+
+
+
+
+  // Retrive raw data, this does not relate to the assignment
+  function requestRawDocumentFromSources() {
+    docCount = 0;
+    $('#source').html('');
+
+    $.ajaxPrefilter( function (options) {
+      if (options.crossDomain && jQuery.support.cors) {
+        var http = (window.location.protocol === 'http:' ? 'http:' : 'https:');
+        options.url = http + '//cors-anywhere.herokuapp.com/' + options.url;
+      }
+    });
+
+
+    jQuery.ajaxSetup({async:false});
+    for(var i in docSources) {
+      var docSource = docSources[i];
+      var fullDocPath = docPath.replace('{NAME}',docSource.name);
+
+      if(localStorage.getItem(fullDocPath) && typeof(Storage) !== "undefined") { // Cache hit
+        printSource(docSource.name,localStorage.getItem(fullDocPath),docSource.relevant);
+      } else {
+        $.get(fullDocPath,function (response) { // Request from internet
+          if(typeof(Storage) !== "undefined") {
+            localStorage.setItem(fullDocPath, response);
+          }
+          printSource(docSource.name,response,docSource.relevant);
+        });
+      }
+    }
+    jQuery.ajaxSetup({async:true});
+    $('#loading').hide();
+  }
+
+  function printSource(name, text, isRelevance) {
+    var html = '';
+    var checked = isRelevance?'checked':'';
+    html += '<div class="document">';
+    html += '<input type="checkbox" id="relevance_'+name+'" '+checked+'>' + name;
+    html += ' <br />';
+    html += ' <textarea style="width:100%;height:100px;" id="document_'+name+'">'+text+'</textarea>';
+    html += '</div>';
+
+    if(++docCount%5==0) {
+      html += '<div style="clear: both;"><br /></div>';
+    }
+    $('#source').append(html);
+  }
+
+
+
+  </script>
+
+</body>
+</html>
