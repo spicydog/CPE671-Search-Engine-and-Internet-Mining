@@ -91,7 +91,7 @@
 
   requestRawDocumentFromSources();
 
-  //
+  // Compute Weight is clicked
   $('#compute_weight').click(function() {
 
     globalDictionary = new Array();
@@ -121,6 +121,7 @@
 
     });
 
+    // Compute term weights
     globalWeight = getWeight(globalDictionary,globalDocuments);
     var output = '';
     for(var term in globalWeight) {
@@ -130,17 +131,22 @@
 
   });
 
-
+  // Search button is clicked
   $('#btn_search').click(function() {
 
+    // Get array of keywords
     var searchKeyword = $('#txt_search').val();
     searchKeyword = convertLowerCase(searchKeyword);
     searchKeyword = filterSymbols(searchKeyword);
-
     var keywords = searchKeyword.split(' ');
+
+    // Compute score of documents for the terms
     var scores = getDocumentScores(globalDocuments,globalDictionary,globalWeight,keywords);
+
+    // Sort document scores order by DESC
     var sortedIndices = getSortedIndices(scores).reverse();
 
+    // Generate output
     var output = '';
     for(var i in sortedIndices) {
       var docID = sortedIndices[i];
