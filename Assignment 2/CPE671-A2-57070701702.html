@@ -54,86 +54,45 @@
 
 
 <div id="documents">
-<h3>Documents</h3>
-<div id="source"></div>
-<button id="run_index">Compute Weight</button>
-<hr />
+  <h3>Documents</h3>
+  <div id="source"></div>
+  <hr />
 </div>
 
-<div id="step5">
-  <h3>Compute the Robertson/Sparck Jones weight wt of all the weight t in all the 10 documents using Eq. 6 in the lecture.<a href=""></a><input id="phrase" type="text" placeholder="phrase" />
-  <button id="run5">Search!</button><br /><br />
-  <pre id="result"></pre>
+
+<div>
+  <h3>Compute the Robertson/Sparck Jones weight wt of all the weight t in all the 10 documents using Eq. 6 in the lecture.</h3>
+  <button id="compute_weight">Compute Weight</button>
+  <pre id="weight_result" style="height:200px; overflow:auto;"></pre>
+  <hr />
+</div>
+
+
+
+<div>
+  <h3>Implement a query search function that prints the ranked documents based on their combined weights.</h3>
+  <input id="txt_search" type="text" placeholder="keyword" /></h3>
+  <button id="btn_search">Search</button>
+  <pre id="search_result"></pre>
   <hr />
 </div>
 
 
 
 
-
-
-
 <script type="text/javascript">
 
+  var globalDictionary = new Array();
+  var globalDocuments = new Array();
+  var globalWeight = new Array();
+  var currentWordIndex = 0;
+
   var docCount = 0;
+
   requestRawDocumentFromSources();
-  function requestRawDocumentFromSources() {
-    docCount = 0;
-    $('#source').html('');
 
-    $.ajaxPrefilter( function (options) {
-      if (options.crossDomain && jQuery.support.cors) {
-        var http = (window.location.protocol === 'http:' ? 'http:' : 'https:');
-        options.url = http + '//cors-anywhere.herokuapp.com/' + options.url;
-      }
-    });
-
-
-    jQuery.ajaxSetup({async:false});
-    for(var i in docSources) {
-      var docSource = docSources[i];
-      var fullDocPath = docPath.replace('{NAME}',docSource.name);
-
-      if(localStorage.getItem(fullDocPath) && typeof(Storage) !== "undefined") { // Cache hit
-        printSource(docSource.name,localStorage.getItem(fullDocPath),docSource.relevant);
-      } else {
-        $.get(fullDocPath,function (response) { // Request from internet
-          if(typeof(Storage) !== "undefined") {
-            localStorage.setItem(fullDocPath, response);
-          }
-          printSource(docSource.name,response,docSource.relevant);
-        });
-      }
-    }
-    jQuery.ajaxSetup({async:true});
-    $('#loading').hide();
-  }
-
-  function printSource(name, text, isRelevance) {
-    var html = '';
-    var checked = isRelevance?'checked':'';
-    html += '<div class="document">';
-    html += '<input type="checkbox" id="relevance_'+name+'" '+checked+'>' + name;
-    html += ' <br />';
-    html += ' <textarea style="width:100%;height:100px;" id="document_'+name+'">'+text+'</textarea>';
-    html += '</div>';
-
-    if(++docCount%5==0) {
-      html += '<div style="clear: both;"><br /></div>';
-    }
-    $('#source').append(html);
-  }
-
-
-  var indexedData;
-  var dictionary;
-
-  var documents = [];
-
-
-  // Index documents
-  $('#run_index').click(function() {
-    // Do index
+  //
+  $('#compute_weight').click(function() {
 
     globalDictionary = new Array();
     globalDocuments = new Array();
@@ -162,21 +121,49 @@
 
     });
 
-    // console.log(globalDocuments);
-    var weights = getWeight(globalDictionary,globalDocuments);
+    globalWeight = getWeight(globalDictionary,globalDocuments);
     var output = '';
-    for(var term in weights) {
-      output += term + "\t".repeat( 3 - Math.floor(term.length/8) ) + weights[term] + "\n";
+    for(var term in globalWeight) {
+      output += term + "\t".repeat( 3 - Math.floor(term.length/8) ) + globalWeight[term] + "\n";
     }
-    $('#result').html(output);
-
-    // $('#result').html(printDictionary(globalDictionary,100000));
+    $('#weight_result').html(output);
 
   });
 
-  var globalDictionary = new Array();
-  var globalDocuments = new Array();
-  var currentWordIndex = 0;
+
+  $('#btn_search').click(function() {
+
+    var searchKeyword = $('#txt_search').val();
+    searchKeyword = convertLowerCase(searchKeyword);
+    searchKeyword = filterSymbols(searchKeyword);
+
+    var keywords = searchKeyword.split(' ');
+    var scores = getDocumentScores(globalDocuments,globalDictionary,globalWeight,keywords);
+    var sortedIndices = getSortedIndices(scores).reverse();
+
+    var output = '';
+    for(var i in sortedIndices) {
+      var docID = sortedIndices[i];
+      var docName = globalDocuments[docID].name;
+      output += docName + "\t".repeat( 3 - Math.floor(docName.length/8) ) + scores[docID] + "\n" ;
+    }
+    $('#search_result').html(output);
+
+  });
+
+
+
+  function convertLowerCase(string) {
+    return string.toLowerCase();
+  }
+
+  function filterSymbols(data) {
+    data = data.replace(/[^a-z 0-9]/gi,'');
+    while(data.indexOf('  ')>0) {
+      data = data.replace(/  /g, ' ');
+    }
+    return data;
+  }
 
   function tokenize(data, dictionary) {
     var lines = data.split("\n");
@@ -247,8 +234,6 @@
         var index = indices[i];
         var docID = getDocID(index);
         isInDocs[docID] = true;
-        // console.log(index);
-        // console.log(term + " " + index + " " + getDocID(index));
       }
 
       var Ntr = 0;
@@ -272,109 +257,103 @@
     return weights;
   }
 
+  function getDocumentScores(documents,dictionary,weight,keywords) {
+    var scores = new Array();
 
-  function convertLowerCase(string) {
-    return string.toLowerCase();
+    for(var docID in documents) {
+      scores[docID] = 0;
+    }
+
+    for(var i in keywords) {
+      var keyword = keywords[i];
+      var positions = dictionary[keyword];
+
+      var appears = new Array();
+      for(var docID in documents) {
+        appears[docID] = 0;
+      }
+
+      for(var j in positions) {
+        var position = positions[j];
+        var docID = getDocID(position);
+        appears[docID] = 1;
+      }
+      for(var docID in documents) {
+        scores[docID] += appears[docID]*weight[keyword];
+      }
+
+    }
+
+    return scores;
   }
 
-  function searchParse(phrase) {
-  	phrase = phrase.trim();
-    phrase = convertLowerCase(phrase);
-    phrase = filterSymbols(phrase);
-    words = phrase.split(" ");
-
-    var firstWordIndex = -1;
-    var result = new Array();
-    while(true) {
-
-      firstWordIndex = next(dictionary[ words[0] ], firstWordIndex);
-      if(firstWordIndex<0) {
-        break;
-      }
-
-      var foundFlag = true;
-      for(var i=1;i<words.length;i++) {
-        if( next(dictionary[ words[i] ], firstWordIndex+i-1) != firstWordIndex+i ) {
-          foundFlag = false;
-          break;
-        }
-      }
-
-      if(foundFlag) {
-        var temp = new Array();
-        for(var i=0;i<words.length;i++) {
-          temp.push(firstWordIndex+i);
-        }
-        result.push(temp);
-      }
-
-      firstWordIndex++;
+  function getSortedIndices(array) {
+    var indices = new Array();
+    for(var key in array) {
+      indices.push(key);
     }
-    return result;
+
+    for(var i=0; i<array.length; i++) {
+      for(var j=i+1; j<array.length; j++) {
+        if( array[indices[i]] > array[indices[j]] ) {
+          var swap = indices[i];
+          indices[i] = indices[j];
+          indices[j] = swap;
+        }
+      }
+    }
+    return indices;
   }
 
 
-  function next(array,fromIndex) {
 
-    fromIndex += 1;
-    // No data
-    if(array==undefined || array.length==0) {
-      return -1;
-    }
 
-    var count = array.length;
-    // Only one element
-    if(count==1) {
-      return array[0] >= fromIndex ? array[0] : -2;
-    }
+  // Retrive raw data, this does not relate to the assignment
+  function requestRawDocumentFromSources() {
+    docCount = 0;
+    $('#source').html('');
 
-    // Exceed last index
-    if(array[count-1] < fromIndex) {
-      return -2;
-    }
+    $.ajaxPrefilter( function (options) {
+      if (options.crossDomain && jQuery.support.cors) {
+        var http = (window.location.protocol === 'http:' ? 'http:' : 'https:');
+        options.url = http + '//cors-anywhere.herokuapp.com/' + options.url;
+      }
+    });
 
-    var begin = 0;
-    var end = count-1;
-    var pivot = Math.floor((end+begin)/2);
 
-    while(begin<end) {
-      if(fromIndex < array[pivot]) {
-        end = pivot;
-      } else if(fromIndex > array[pivot]) {
-        begin = pivot+1;
+    jQuery.ajaxSetup({async:false});
+    for(var i in docSources) {
+      var docSource = docSources[i];
+      var fullDocPath = docPath.replace('{NAME}',docSource.name);
+
+      if(localStorage.getItem(fullDocPath) && typeof(Storage) !== "undefined") { // Cache hit
+        printSource(docSource.name,localStorage.getItem(fullDocPath),docSource.relevant);
       } else {
-        begin = pivot;
-        end = pivot;
+        $.get(fullDocPath,function (response) { // Request from internet
+          if(typeof(Storage) !== "undefined") {
+            localStorage.setItem(fullDocPath, response);
+          }
+          printSource(docSource.name,response,docSource.relevant);
+        });
       }
-      pivot = Math.floor((end+begin)/2);
     }
-
-    return array[pivot];
+    jQuery.ajaxSetup({async:true});
+    $('#loading').hide();
   }
 
+  function printSource(name, text, isRelevance) {
+    var html = '';
+    var checked = isRelevance?'checked':'';
+    html += '<div class="document">';
+    html += '<input type="checkbox" id="relevance_'+name+'" '+checked+'>' + name;
+    html += ' <br />';
+    html += ' <textarea style="width:100%;height:100px;" id="document_'+name+'">'+text+'</textarea>';
+    html += '</div>';
 
-  function filterSymbols(data) {
-    data = data.replace(/[^a-z 0-9]/gi,'');
-    return data;
-  }
-
-
-  function printDictionary(dictionary,n) {
-    var result = "";
-    for(word in dictionary) {
-      if(n--<=0)
-        break;
-
-      var positions = dictionary[word];
-      result += word + " ("+ positions.length +")" + ": ";
-      for(i in positions) {
-        var position = positions[i];
-        result += position + ", ";
-      }
-      result = result.substr(0, result.length - 2);
-      result += "\n";
+    if(++docCount%5==0) {
+      html += '<div style="clear: both;"><br /></div>';
     }
-    return result;
+    $('#source').append(html);
   }
 
 
