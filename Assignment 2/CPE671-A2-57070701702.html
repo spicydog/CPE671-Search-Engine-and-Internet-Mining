@@ -44,7 +44,7 @@
                        {name:'TheFaultInOurStars'   ,relevant:false},
                        {name:'Titanic'              ,relevant:false}];
 
-    var docPath = 'https://raw.githubusercontent.com/spicydog/CPE671-Search-Engine-and-Internet-Mining/master/Assignment%202/data/{NAME}.txt';
+    var docPath = 'https://spicydog.github.io/CPE671-Search-Engine-and-Internet-Mining/Assignment%202/data/{NAME}.txt';
 
   </script>
 </head>
@@ -318,14 +318,6 @@
   function requestRawDocumentFromSources() {
     docCount = 0;
     $('#source').html('');
-
-    $.ajaxPrefilter( function (options) {
-      if (options.crossDomain && jQuery.support.cors) {
-        var http = (window.location.protocol === 'http:' ? 'http:' : 'https:');
-        options.url = http + '//cors-anywhere.herokuapp.com/' + options.url;
-      }
-    });
-
 
     jQuery.ajaxSetup({async:false});
     for(var i in docSources) {
