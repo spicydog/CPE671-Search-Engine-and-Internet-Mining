@@ -121,6 +121,14 @@
 
     });
 
+    // Task 1
+    console.log(printDictionary(globalDictionary,5000));
+
+    // Task 2
+    console.log(JSON.stringify(globalDocuments));
+
+
+
     // Compute term weights
     globalWeight = getWeight(globalDictionary,globalDocuments);
     var output = '';
@@ -354,7 +362,23 @@
     $('#source').append(html);
   }
 
+  function printDictionary(dictionary,n) {
+    var result = "";
+    for(word in dictionary) {
+      if(n--<=0)
+        break;
 
+      var positions = dictionary[word];
+      result += word + " ("+ positions.length +")" + ": ";
+      for(i in positions) {
+        var position = positions[i];
+        result += position + ", ";
+      }
+      result = result.substr(0, result.length - 2);
+      result += "\n";
+    }
+    return result;
+  }
 
   </script>
 
