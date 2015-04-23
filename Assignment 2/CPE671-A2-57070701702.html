@@ -101,6 +101,7 @@
     $("textarea[id^='document_']").each(function(index) {
 
       var data = $(this).val();
+      data = docSources[index].name + " " + data;
       data = convertLowerCase(data);
       data = filterSymbols(data);
       documents[index] = data;
